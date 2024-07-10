@@ -20,7 +20,7 @@ with column1:
 with column2:
     st.title("Fake News Detector v1.0")
 
-st.text("A simple web application created using the Streamlit library, that identifies \nwhether a news article is likely to be true or false.")
+st.text("A simple web application, created using the Streamlit library, that identifies \nwhether a news article is likely to be true or false.")
 
 text = st.text_area("Article: ", placeholder="Input text here")
 st.markdown('<p style="font-style: italic; color: gray;">Note: Please note that it may sometimes produce inaccurate results.</p>', unsafe_allow_html=True)
