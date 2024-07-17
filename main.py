@@ -1,6 +1,5 @@
 import tensorflow as tf
 from transformers import TFBertForSequenceClassification, BertTokenizer
-from textblob import TextBlob
 import streamlit as st
 from googletrans import Translator
 from langdetect import detect
@@ -27,7 +26,7 @@ tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 # Load the custom BERT model
 base_model = TFBertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=2)
 custom_model = CustomBertModel(base_model)
-custom_model.load_weights('Bert custom model')
+custom_model.load_weights('custom model')
 
 # Layout
 column1, column2 = st.columns([1, 9])
@@ -43,13 +42,11 @@ text = st.text_area("Article: ", placeholder="Input text here")
 st.markdown('<p style="font-style: italic; color: gray;">Note: Please note that it may sometimes produce inaccurate results.</p>', unsafe_allow_html=True)
 
 # Buttons
-col1, col2, col3 = st.columns([1, 1, 1])
+col1, col2 = st.columns([1, 1])
 with col1:
-    analyze_sentiment = st.button('Analyze Sentiment')
+    detect_news = st.button('Detect Fake News using BERT')
 with col2:
-    detect_news = st.button('Detect Fake News')
-with col3:
-    analyze_both = st.button('Analyze Both')
+    analyze_both = st.button('Detect Fake News using Custom BERT')
 
 def preprocess_text(text):
     return text.lower().strip()
@@ -72,26 +69,19 @@ def check_fake_news_bert(input_text):
     else:
         return 'real', probabilities
 
-def sentiment_analysis(text):
-    analysis = TextBlob(text)
-    polarity = analysis.sentiment.polarity
-    return polarity
-
 def predict_news(input_text):
     preprocessed_text = preprocess_text(input_text)
-    sentiment = sentiment_analysis(preprocessed_text)
-    polarity = sentiment
     inputs = tokenizer(preprocessed_text, truncation=True, padding='max_length', max_length=42, return_tensors='tf')
     input_ids = inputs['input_ids']
     token_type_ids = inputs['token_type_ids']
     attention_mask = inputs['attention_mask']
-    polarity_tensor = tf.convert_to_tensor([polarity], dtype=tf.float32)
+    polarity_tensor = tf.convert_to_tensor([0], dtype=tf.float32)  # Dummy polarity tensor for input compatibility
     predictions = custom_model([input_ids, token_type_ids, attention_mask, polarity_tensor])
     probabilities = tf.nn.softmax(predictions[0])
     predicted_label = tf.argmax(probabilities).numpy()
     return predicted_label, probabilities.numpy()
 
-# Checks language and translates to english
+# Checks language and translates to English
 translator = Translator()
 if text:
     try:
@@ -103,20 +93,6 @@ if text:
             translated_text = text
     except Exception as e:
         st.error(f"Error in translation: {e}")
-
-    if analyze_sentiment or analyze_both:
-        # Sentiment analysis
-        polarity = sentiment_analysis(translated_text)
-        st.write('Polarity:', polarity)
-        subjectivity = round(TextBlob(translated_text).sentiment.subjectivity, 2)
-        st.write('Subjectivity:', subjectivity)
-
-        if polarity >= 0.1:
-            st.markdown('<div style="text-align:center;"><span style="font-size:100px;">😊</span><p style="font-size:24px;">Happy!</p></div>', unsafe_allow_html=True)
-        elif polarity <= -0.1:
-            st.markdown('<div style="text-align:center;"><span style="font-size:48px;">😞</span><p style="font-size:24px;">Sad!</p></div>', unsafe_allow_html=True)
-        else:
-            st.markdown('<div style="text-align:center;"><span style="font-size:48px;">😐</span><p style="font-size:24px;">Neutral!</p></div>', unsafe_allow_html=True)
 
     if detect_news:
         # Fake news detection
